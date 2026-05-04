@@ -1,0 +1,21 @@
+[project]
+name = "traa-uiautomator"
+version = "0.1.0"
+description = "Python middleware foundation for computer observation and input automation."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pillow>=12.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/traa_uiautomator"]
+
+[dependency-groups]
+dev = [
+  "pytest>=9.0.0",
+]
