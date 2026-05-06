@@ -142,3 +142,62 @@ class UiAutomatorService:
             else f"failed to click text match '{query}'"
         )
         return click_result
+
+    def click_text_then_type(
+        self,
+        query: str,
+        text: str,
+        timeout_ms: int = 2000,
+    ) -> dict[str, object]:
+        click_result = self.click_text(query, dry_run=False)
+        if not click_result.get("ok"):
+            return {
+                "ok": False,
+                "error_code": click_result.get("error_code"),
+                "message": f"failed during click_text step for '{query}'",
+                "artifacts": click_result.get("artifacts", {}),
+                "observation_summary": click_result.get("observation_summary"),
+                "next_action_hints": ["find_text", "retry_with_new_snapshot"],
+                "click": click_result,
+                "wait_for_change": None,
+                "type_text": None,
+            }
+
+        wait_result = self.wait_for_change_result(timeout_ms)
+        if not wait_result.get("ok"):
+            return {
+                "ok": False,
+                "error_code": wait_result.get("error_code"),
+                "message": "failed during wait_for_change step",
+                "artifacts": {
+                    **click_result.get("artifacts", {}),
+                    **wait_result.get("artifacts", {}),
+                },
+                "observation_summary": wait_result.get("observation_summary"),
+                "next_action_hints": ["retry_with_new_snapshot", "wait_for_change"],
+                "click": click_result,
+                "wait_for_change": wait_result,
+                "type_text": None,
+            }
+
+        type_result = self.type_text_result(text)
+        ok = bool(type_result.get("ok"))
+        return {
+            "ok": ok,
+            "error_code": type_result.get("error_code"),
+            "message": (
+                f"clicked text '{query}', observed a change, and typed input"
+                if ok
+                else f"failed during type_text step after clicking '{query}'"
+            ),
+            "artifacts": {
+                **click_result.get("artifacts", {}),
+                **wait_result.get("artifacts", {}),
+                **type_result.get("artifacts", {}),
+            },
+            "observation_summary": f"Completed multi-step workflow for text target '{query}'",
+            "next_action_hints": ["submit", "press_hotkey", "wait_for_change"] if ok else ["type_text", "retry"],
+            "click": click_result,
+            "wait_for_change": wait_result,
+            "type_text": type_result,
+        }
